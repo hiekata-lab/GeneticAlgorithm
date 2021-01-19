@@ -120,98 +120,109 @@ int numGenerations;
 int childrenPerGeneration;
 int currentGeneration;
 
-// Each entry is the most fit solution for each generation
+// Each entry in the list is the most fit configuration settings or cost for a given generation
 ArrayList<int[]> fittestStationConfiguration;
 ArrayList<float[][]> fittestAllocation;
 ArrayList<Float> fittestCost;
 
-// Each entry is a child of the most fit solution from the previous generation
-ArrayList<int[]> childrenStationConfiguration;
-ArrayList<float[][]> childrenAllocation;
-ArrayList<Float> childrenCost;
-
+// This method runs once when the application is starting
 void setup() {
   
   numGenerations = 5000;
   childrenPerGeneration = 300;
   currentGeneration = 0;
   
-  // Initial Station Configuration ALL BUILT:
-  // This is abviously the most expensive and least efficient option to start with
-  // 0 = DO NOT BUILD
-  // 1 = DO BUILD
+  // Initial Station Configuration [ALL BUILT]:
+  // This is obviously the most expensive and least efficient option to start with
+  // So we expect to easily find better solutions
+  // 0 = DO NOT BUILD; 1 = DO BUILD
   int[] stationConfiguration_0 = {1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+  
+  // Initial allocation of refuse requests from sites to stations in the formation of an origin-destination matrix
   float[][] allocation_0 = initAllocation(stationConfiguration_0);
+  
+  // Initial cost is calculated using the station configuration and the request allocations
   float cost_0 = totalCost(stationConfiguration_0, allocation_0);
   
-  // Log the most fit Station Configuration for each generation
+  // List to Record the "most fit" Station Configuration for each generation
   fittestStationConfiguration = new ArrayList<int[]>();
-  fittestStationConfiguration.add(stationConfiguration_0);
   
-  // Log the most fit allocation of requests for each generation
+  // List to Record the "most fit" allocation of requests for each generation
   fittestAllocation = new ArrayList<float[][]>();
-  fittestAllocation.add(allocation_0);
   
-  // Log the most fit cost for each generation
+  // List to Record the "most fit" cost for each generation
   fittestCost = new ArrayList<Float>();
+  
+  
+  // Populate initial values of fit lists
+  fittestStationConfiguration.add(stationConfiguration_0);
+  fittestAllocation.add(allocation_0);
   fittestCost.add(cost_0);
   
-  // Initialize Children
-  childrenStationConfiguration = new ArrayList<int[]>();
-  childrenAllocation = new ArrayList<float[][]>();
-  childrenCost = new ArrayList<Float>();
-  
-  // Make New Generations
+  // Run Genetic Algorithm
   while(currentGeneration < numGenerations) {
+    
+    // Settings for Previous Generation
     int[] parentStationConfig = fittestStationConfiguration.get(currentGeneration);
     float[][] parentAllocation = fittestAllocation.get(currentGeneration);
     
-    boolean mutateSiteConfig = false;
-    if (random(1) > 0.99) mutateSiteConfig = true;
-    evalNextGeneration(mutateSiteConfig, parentStationConfig, parentAllocation, childrenPerGeneration);
-    
+    // Evaluate next generation and add record the most fit child
+    evalNextGeneration(parentStationConfig, parentAllocation, childrenPerGeneration);
     currentGeneration++;
   }
   
-  // Debug
+  // Print Final Solution Summary to Console:
   int[] lastConfig = fittestStationConfiguration.get(numGenerations - 1);
   float[][] lastAllocation = fittestAllocation.get(numGenerations - 1);
   printStationConfiguration(lastConfig, lastAllocation);
   println(" ");
   printAllocation(lastAllocation);
-  println("Over Capacity? " + overCapacity(lastConfig, lastAllocation));
+  println("Over Capacity: " + overCapacity(lastConfig, lastAllocation));
   println("Total Cost: " + totalCost(lastConfig, lastAllocation));
   
   // Canvas Size
   size(1200, 600);
+  drawGraph();
 }
 
-/* Generate Children
+/* Generate and Evaluate Children of a single generation for Fitness
  */
-public void evalNextGeneration(boolean mutateSiteConfig, int[] parentStationConfig, float[][] parentAllocation, int numChildren) {
-  childrenStationConfiguration.clear();
-  childrenAllocation.clear();
-  childrenCost.clear();
+public void evalNextGeneration(int[] parentStationConfig, float[][] parentAllocation, int numChildren) {
   
   // Variables to store fittest child in this generation
   int[] fitStationConfiguration = parentStationConfig;
   float[][] fitAllocation = parentAllocation;
   float fitCost = totalCost(parentStationConfig, parentAllocation);
-    
+  
+  // Rarely mutate the station configuration:
+  boolean mutateStationConfig;
+  if (random(1) > 0.95) {
+    mutateStationConfig = true;
+  } else {
+    mutateStationConfig = false;
+  }
+  
+  // Generate all of the offspring for current generation
   for(int i=0; i<numChildren; i++) {
     
+    // Child Configuration
     int[] stationConfiguration;
     float[][] allocation;
-    if(mutateSiteConfig) {
+    
+    if(mutateStationConfig) {
+      // Mutate the scenario's Station Configuration
       stationConfiguration = mutateStationConfiguration(parentStationConfig);
       allocation = initAllocation(stationConfiguration);
     } else {
+      // Mutation the scenario's Allocation for Requests while holding Station Configuration Constant
       stationConfiguration = parentStationConfig;
       allocation = mutateAllocation(parentStationConfig, parentAllocation);
     }
+    // Calculate the cost of this child configuration
     float cost = totalCost(stationConfiguration, allocation);
     
-    // Check if child is cheaper AND within capacity
+    // Check if child is cheaper than all other children AND it's within capacity of all Stations
+    // If so, update this child to be the most fit candidate
     if(cost <= fitCost && !overCapacity(stationConfiguration, allocation)) {
       fitStationConfiguration = stationConfiguration;
       fitAllocation = allocation;
@@ -219,19 +230,21 @@ public void evalNextGeneration(boolean mutateSiteConfig, int[] parentStationConf
     }
   }
   
+  // Record the most fit child's configuration and cost as the result for this generation
   fittestStationConfiguration.add(fitStationConfiguration);
   fittestAllocation.add(fitAllocation);
   fittestCost.add(fitCost);
 }
 
 /* Initialize a matrix that distributes all site requests equally across all available stations
- * Each row should add up to site's total requests. 
+ * Each row (representing a site) should add up to site's total requests. 
  *
  * --Note that this method does not consider station capacity and may allocate 
  *   more requests to a station than it can handle!!!--
  */
 float[][] initAllocation(int[] stationConfig) {
   
+  // Total number of sites and stations
   int numSites = SITE_REQUESTED.length;
   int potentialStations = stationConfig.length;
   
@@ -267,6 +280,7 @@ float[][] initAllocation(int[] stationConfig) {
  */
 public int[] mutateStationConfiguration(int[] stationConfig) {
   
+  // Total number of stations
   int potentialStations = stationConfig.length;
   int[] childConfig = new int[potentialStations];
   
@@ -297,10 +311,11 @@ public int[] mutateStationConfiguration(int[] stationConfig) {
 }
 
 /* Mutate the stations allocation so that a portion of a single site's refuse 
- * request is transferred to another site.
+ * request is transferred among other sites
  */
 public float[][] mutateAllocation(int[] stationConfig, float[][] allocation) {
   
+  // Total number of sites and stations
   int numSites = SITE_REQUESTED.length;
   int potentialStations = stationConfig.length;
   
@@ -346,7 +361,7 @@ public float[][] mutateAllocation(int[] stationConfig, float[][] allocation) {
   return allocation_copy;
 }
 
-/* Make a copy of the request allocation matrix
+/* Make a copy of an array
  */
 public float[][] cloneMatrix(float[][] matrix) {
   float[][] clone = new float[matrix.length][matrix[0].length];
@@ -362,6 +377,8 @@ public float[][] cloneMatrix(float[][] matrix) {
  * Note that a station that is not built is treated as a station with zero capacity
  */
 public boolean overCapacity(int[] stationConfig, float[][] allocation) {
+  
+  // Total number of sites and stations
   int numSites = SITE_REQUESTED.length;
   int potentialStations = STATION_REQUEST_CAPACITY.length;
   
@@ -389,9 +406,13 @@ public boolean overCapacity(int[] stationConfig, float[][] allocation) {
   return false;
 }
 
-public float[] getTotalRequests(int[] stationConfig, float[][] allocation) {
+/* Get total requests aggregated by Station
+ */
+public float[] getTotalRequests(float[][] allocation) {
+  
+   // Total number of sites and stations
   int numSites = SITE_REQUESTED.length;
-  int potentialStations = STATION_REQUEST_CAPACITY.length;
+  int potentialStations = allocation[0].length;
   
   // Total Requests allocated for each station initialized to zero
   float[] totalRequests = new float[potentialStations];
@@ -413,6 +434,7 @@ public float[] getTotalRequests(int[] stationConfig, float[][] allocation) {
  */
 public float totalCost(int[] stationConfig, float[][] allocation) {
   
+  // Total number of sites and stations
   int numSites = allocation.length;
   int potentialStations = stationConfig.length;
   
@@ -433,11 +455,12 @@ public float totalCost(int[] stationConfig, float[][] allocation) {
   return capitalCost + transportCost;
 }
 
-/* Print allocation of requests to console
+/* Print Station Configuration to console
  */
 public void printStationConfiguration(int[] stationConfig, float[][] allocation) {
   
-  float[] totalRequests = getTotalRequests(stationConfig, allocation);
+  // Get total requests aggregated by Station
+  float[] totalRequests = getTotalRequests(allocation);
   
   // Initialize Counteres for Labels
   int station = 1;
@@ -490,40 +513,43 @@ public void printAllocation(float[][] allocation) {
   println(header + "\n" + body);
 }
 
-public void draw() {
+/* Draw the plot of generation fitness
+ */
+public void drawGraph() {
   
   // Draw Graph
   int margin = 100;
   
+  // Numeric Bounds
   int x_min = 0;
   int x_max = numGenerations;
   int y_min = 0;
   int y_max = 2000;
   
+  // Styling
   background(255);
   stroke(0);
-  
-  // Draw Axes
-  line(margin, margin, margin, height - margin);
-  line(margin, height - margin, width - margin, height - margin);
-  
   textAlign(CENTER, CENTER);
   fill(0);
   
+  // Draw Axes Lines
+  line(margin, margin, margin, height - margin);
+  line(margin, height - margin, width - margin, height - margin);
+  
+  // Y Axis Text
   pushMatrix(); 
   translate(0.75 * margin, 0.5 * height); 
   rotate(-0.5 * PI);
   text("Cost", 0, 0);
   popMatrix();
+  text(y_min, 0.75 * margin, height - margin);
+  text(y_max, 0.75 * margin, margin);
   
+  // X Axis Text
   pushMatrix(); 
   translate(0.5 * width, height - 0.75 * margin); 
   text("Generation", 0, 0);
   popMatrix();
-  
-  text(y_min, 0.75 * margin, height - margin);
-  text(y_max, 0.75 * margin, margin);
-  
   text(x_min, margin, height - 0.75 * margin);
   text(x_max, width - margin, height - 0.75 * margin);
   
