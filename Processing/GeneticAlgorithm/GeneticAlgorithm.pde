@@ -6,7 +6,7 @@
 /* The following script will implement the following:
  * 1. Parameterized model of a logistics network,  according to Mingrui's work
  * 2. Evaluation of the network's cost
- * 3. Genertic Algorithm to discover least cost solution
+ * 3. Genetic Algorithm to discover least cost solution
  */
  
 /* Model Description:
