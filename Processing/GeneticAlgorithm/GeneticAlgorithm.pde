@@ -117,7 +117,7 @@ float[] SITE_REQUESTED = {
 
 // Genetic Algorithm Parameters
 int numGenerations;
-int childrenPerGeneration;
+int childrenPerGeneration, grandChildrenPerGeneration;
 
 // Each entry in the list is the most fit configuration settings or cost for a given generation
 ArrayList<int[]> fittestStationConfiguration;
@@ -127,8 +127,9 @@ ArrayList<Float> fittestCost;
 // This method runs once when the application is starting
 void setup() {
   
-  numGenerations = 5000;
-  childrenPerGeneration = 300;
+  numGenerations = 100;
+  childrenPerGeneration = 100;
+  grandChildrenPerGeneration = 500;
   
   // Initial Station Configuration [ALL BUILT]:
   // This is obviously the most expensive and least efficient option to start with
@@ -161,7 +162,11 @@ void setup() {
     float[][] parentAllocation = fittestAllocation.get(currentGeneration);
     
     // Evaluate next generation and add record the most fit child
-    evalNextGeneration(parentStationConfig, parentAllocation, childrenPerGeneration);
+    evalGrandChildren(parentStationConfig, parentAllocation, childrenPerGeneration, grandChildrenPerGeneration);
+    
+    // The following method was deprecated and replaced by "evalGrandChildren"
+    //evalChildren(parentStationConfig, parentAllocation, childrenPerGeneration);
+    
     currentGeneration++;
   }
   
@@ -183,7 +188,7 @@ void setup() {
 
 /* Generate and Evaluate Children of a single generation for Fitness
  */
-public void evalNextGeneration(int[] parentStationConfig, float[][] parentAllocation, int numChildren) {
+public void evalChildren(int[] parentStationConfig, float[][] parentAllocation, int numChildren) {
   
   // Variables to store fittest child in this generation
   int[] fitStationConfiguration = parentStationConfig;
@@ -206,10 +211,12 @@ public void evalNextGeneration(int[] parentStationConfig, float[][] parentAlloca
     float[][] allocation;
     
     if(mutateStationConfig) {
+      
       // Mutate the scenario's Station Configuration
       stationConfiguration = mutateStationConfiguration(parentStationConfig);
-      allocation = initAllocation(stationConfiguration);
+      allocation = reAllocate(stationConfiguration, parentAllocation);
     } else {
+      
       // Mutation the scenario's Allocation for Requests while holding Station Configuration Constant
       stationConfiguration = parentStationConfig;
       allocation = mutateAllocation(parentStationConfig, parentAllocation);
@@ -223,6 +230,77 @@ public void evalNextGeneration(int[] parentStationConfig, float[][] parentAlloca
       fitStationConfiguration = stationConfiguration;
       fitAllocation = allocation;
       fitCost = cost;
+    }
+  }
+  
+  // Record the most fit child's configuration and cost as the result for this generation
+  fittestStationConfiguration.add(fitStationConfiguration);
+  fittestAllocation.add(fitAllocation);
+  fittestCost.add(fitCost);
+}
+
+/* Generate and Evaluate Children and Grand Children of a single generation for Fitness
+ */
+public void evalGrandChildren(int[] parentStationConfig, float[][] parentAllocation, int numChildren, int numGrandChildren) {
+  
+  // Variables to store fittest child in this generation
+  int[] fitStationConfiguration = parentStationConfig;
+  float[][] fitAllocation = parentAllocation;
+  float fitCost = totalCost(parentStationConfig, parentAllocation);
+  
+  // Generate all of the offspring for current generation
+  for(int i=0; i<numChildren; i++) {
+    
+    // Child Configuration
+    int[] stationConfiguration;
+    float[][] allocation;
+    
+    // Chance that stations will be mutated this generation instead of allocations
+    boolean mutateStationConfig;
+    if (random(1) < 0.10) {
+      mutateStationConfig = true;
+    } else {
+      mutateStationConfig = false;
+    }
+    
+    if(mutateStationConfig) {
+      
+      // Mutate the scenario's Station Configuration
+      stationConfiguration = mutateStationConfiguration(parentStationConfig);
+      allocation = reAllocate(stationConfiguration, parentAllocation);
+    } else {
+      
+      // Mutation the scenario's Allocation for Requests while holding Station Configuration Constant
+      stationConfiguration = parentStationConfig;
+      allocation = mutateAllocation(parentStationConfig, parentAllocation);
+    }
+    
+    int[] fitStationConfigurationGrand = stationConfiguration;
+    float[][] fitAllocationGrand = allocation;
+    float fitCostGrand = totalCost(stationConfiguration, allocation);
+    
+    // Use grand children to select for allocation
+    for(int j=0; j<numGrandChildren; j++) {
+      allocation = mutateAllocation(stationConfiguration, fitAllocationGrand);
+      
+      // Calculate the cost of this child configuration
+      float cost = totalCost(stationConfiguration, allocation);
+      
+      // Check if child is cheaper than all other children AND it's within capacity of all Stations
+      // If so, update this child to be the most fit candidate
+      if(cost <= fitCostGrand && !overCapacity(stationConfiguration, allocation)) {
+        fitStationConfigurationGrand = stationConfiguration;
+        fitAllocationGrand = allocation;
+        fitCostGrand = cost;
+      }
+    }
+    
+    // Check if child is cheaper than all other children AND it's within capacity of all Stations
+    // If so, update this child to be the most fit candidate
+    if(fitCostGrand <= fitCost && !overCapacity(fitStationConfigurationGrand, fitAllocationGrand)) {
+      fitStationConfiguration = fitStationConfigurationGrand;
+      fitAllocation = fitAllocationGrand;
+      fitCost = fitCostGrand;
     }
   }
   
@@ -270,6 +348,44 @@ float[][] initAllocation(int[] stationConfig) {
   }
   
   return allocation;
+}
+
+/* Adjust a matrix that distributes requests that are allocated to unbuilt stations
+ * Each row (representing a site) should add up to site's total requests. 
+ *
+ * --Note that this method does not consider station capacity and may allocate 
+ *   more requests to a station than it can handle!!!--
+ *
+ * --Note that this method assumes that only one station is ever deleted at a time!!!--
+ */
+float[][] reAllocate(int[] stationConfig, float[][] allocation) {
+  
+  // Count number of stations being built
+  int builtStations = 0;
+  for(int i=0; i<stationConfig.length; i++) {
+    builtStations += stationConfig[i];
+  }
+  
+  float[][] newAllocation = cloneMatrix(allocation);
+  for(int i=0; i<newAllocation.length; i++) {
+    for(int j=0; j<newAllocation[0].length; j++) {
+      
+      // Detect if requests need to be reallocated
+      if(stationConfig[j] == 0 && newAllocation[i][j] > 0) {
+        
+        float portionSize = newAllocation[i][j] / builtStations;
+        newAllocation[i][j] = 0;
+        
+        for(int k=0; k<newAllocation[i].length; k++) {
+          if(stationConfig[k] == 1) {
+            newAllocation[i][k] += portionSize;
+          }
+        }
+      }
+    }
+  }
+  
+  return newAllocation;
 }
 
 /* Mutate the Station Configuration so that a random station is built or unbuilt
@@ -520,8 +636,8 @@ public void drawGraph() {
   // Numeric Bounds
   int x_min = 0;
   int x_max = numGenerations;
-  int y_min = 0;
-  int y_max = 2000;
+  int y_min = 400;
+  int y_max = 1500;
   
   // Styling
   background(255);
