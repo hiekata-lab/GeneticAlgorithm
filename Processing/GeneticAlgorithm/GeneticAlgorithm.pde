@@ -299,6 +299,7 @@ public int[] mutateStationConfiguration(int[] stationConfig) {
         childConfig[i] = 0;
       }
     } else {
+      // Leave station state unchanged otherwise
       childConfig[i] = 0 + stationConfig[i];
     }
   }
