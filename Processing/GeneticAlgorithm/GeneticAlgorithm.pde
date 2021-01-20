@@ -277,11 +277,11 @@ public void evalGrandChildren(int[] parentStationConfig, float[][] parentAllocat
       allocation = mutateAllocation(parentStationConfig, parentAllocation);
     }
     
-    int[] fitStationConfigurationGrand = stationConfiguration;
+    // Variables to store fittest grand child in this generation
     float[][] fitAllocationGrand = allocation;
     float fitCostGrand = totalCost(stationConfiguration, allocation);
     
-    // Use grand children to select for allocation
+    // Use grand children to evolve optimal request allocation
     for(int j=0; j<numGrandChildren; j++) {
       allocation = mutateAllocation(stationConfiguration, fitAllocationGrand);
       
@@ -291,7 +291,6 @@ public void evalGrandChildren(int[] parentStationConfig, float[][] parentAllocat
       // Check if child is cheaper than all other children AND it's within capacity of all Stations
       // If so, update this child to be the most fit candidate
       if(cost <= fitCostGrand && !overCapacity(stationConfiguration, allocation)) {
-        fitStationConfigurationGrand = stationConfiguration;
         fitAllocationGrand = allocation;
         fitCostGrand = cost;
       }
@@ -299,8 +298,8 @@ public void evalGrandChildren(int[] parentStationConfig, float[][] parentAllocat
     
     // Check if child is cheaper than all other children AND it's within capacity of all Stations
     // If so, update this child to be the most fit candidate
-    if(fitCostGrand <= fitCost && !overCapacity(fitStationConfigurationGrand, fitAllocationGrand)) {
-      fitStationConfiguration = fitStationConfigurationGrand;
+    if(fitCostGrand <= fitCost && !overCapacity(stationConfiguration, fitAllocationGrand)) {
+      fitStationConfiguration = stationConfiguration;
       fitAllocation = fitAllocationGrand;
       fitCost = fitCostGrand;
     }
