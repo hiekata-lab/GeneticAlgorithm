@@ -118,7 +118,6 @@ float[] SITE_REQUESTED = {
 // Genetic Algorithm Parameters
 int numGenerations;
 int childrenPerGeneration;
-int currentGeneration;
 
 // Each entry in the list is the most fit configuration settings or cost for a given generation
 ArrayList<int[]> fittestStationConfiguration;
@@ -130,7 +129,6 @@ void setup() {
   
   numGenerations = 5000;
   childrenPerGeneration = 300;
-  currentGeneration = 0;
   
   // Initial Station Configuration [ALL BUILT]:
   // This is obviously the most expensive and least efficient option to start with
@@ -160,6 +158,7 @@ void setup() {
   fittestCost.add(cost_0);
   
   // Run Genetic Algorithm
+  int currentGeneration = 0;
   while(currentGeneration < numGenerations) {
     
     // Settings for Previous Generation
@@ -194,9 +193,9 @@ public void evalNextGeneration(int[] parentStationConfig, float[][] parentAlloca
   float[][] fitAllocation = parentAllocation;
   float fitCost = totalCost(parentStationConfig, parentAllocation);
   
-  // Rarely mutate the station configuration:
+  // Small chance that stations will be mutated this generation instead of allocations
   boolean mutateStationConfig;
-  if (random(1) > 0.95) {
+  if (random(1) < 0.05) {
     mutateStationConfig = true;
   } else {
     mutateStationConfig = false;
