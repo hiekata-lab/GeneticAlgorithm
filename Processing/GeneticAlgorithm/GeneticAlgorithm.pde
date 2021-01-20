@@ -197,7 +197,7 @@ public void evalChildren(int[] parentStationConfig, float[][] parentAllocation, 
   
   // Small chance that stations will be mutated this generation instead of allocations
   boolean mutateStationConfig;
-  if (random(1) < 0.05) {
+  if (random(1) < 0.10) {
     mutateStationConfig = true;
   } else {
     mutateStationConfig = false;
@@ -256,8 +256,10 @@ public void evalGrandChildren(int[] parentStationConfig, float[][] parentAllocat
     float[][] allocation;
     
     // Chance that stations will be mutated this generation instead of allocations
+    // tinkering with this value appears to have a pretty big impact on what solutions are discovered
+    float mutationChance = 0.10; // 10%
     boolean mutateStationConfig;
-    if (random(1) < 0.10) {
+    if (random(1) < mutationChance) { 
       mutateStationConfig = true;
     } else {
       mutateStationConfig = false;
