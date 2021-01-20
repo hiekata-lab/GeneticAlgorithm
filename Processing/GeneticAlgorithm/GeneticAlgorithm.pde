@@ -142,15 +142,10 @@ void setup() {
   // Initial cost is calculated using the station configuration and the request allocations
   float cost_0 = totalCost(stationConfiguration_0, allocation_0);
   
-  // List to Record the "most fit" Station Configuration for each generation
+  // List to Record the "most fit" values for each generation
   fittestStationConfiguration = new ArrayList<int[]>();
-  
-  // List to Record the "most fit" allocation of requests for each generation
   fittestAllocation = new ArrayList<float[][]>();
-  
-  // List to Record the "most fit" cost for each generation
   fittestCost = new ArrayList<Float>();
-  
   
   // Populate initial values of fit lists
   fittestStationConfiguration.add(stationConfiguration_0);
@@ -181,6 +176,8 @@ void setup() {
   
   // Canvas Size
   size(1200, 600);
+  
+  // Draw Graph to Canvas
   drawGraph();
 }
 
