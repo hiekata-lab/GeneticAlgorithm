@@ -1,7 +1,10 @@
 # GeneticAlgorithm
 by Ira Winder [jiw@mit.edu] as a demonstrative learning aid for Mingrui Wang [9860851159@edu.k.u-tokyo.ac.jp]
 
-For educational purposes ONLY! 
+**---  
+FOR EDUCATIONAL PURPOSES ONLY!  
+_DO NOT_ USE THIS ALGORITHM OR RESULTS PRODUCED BY THIS ALGORITHM IN YOUR THESIS WORK!  
+---**
 
 ## To Demonstrate the Following
 1. Parameterized model of a the logistics request network,  according to Mingrui's work
