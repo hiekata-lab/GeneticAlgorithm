@@ -17,7 +17,7 @@ _DO NOT_ USE THIS ALGORITHM OR RESULTS PRODUCED BY THIS ALGORITHM IN YOUR THESIS
 3. Use Processing to run the included file "GeneticAlgorithm.pde"
 
 ## Model Description
-The model assumes that 20 given sites create a net amount of refuse that needs to be collected and delivered to a set of "Stations" over a period of time. The model may implement the construction of up to 10 stations that have pre-known locations,  construction costs,  and transportation costs associated with them. 
+The model assumes that 20 given sites create a net amount of refuse that needs to be collected and delivered to a set of "Stations" over a period of time. The model may implements the construction of up to 10 stations that have pre-known locations,  construction costs,  and transportation costs associated with them. 
 
 ## Optimization Goal
 Since each potential station will have unique capital cost and operations costs,  it is not obvious which configuration will be the cheapest to build. Therefore,  we build our model to discover solution that achieves the minimum cost while providing enough capacity for all refuse to be collected.
